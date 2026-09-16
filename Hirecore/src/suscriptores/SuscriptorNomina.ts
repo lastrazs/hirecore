@@ -1,5 +1,5 @@
 import { Suscriptor } from "./Suscriptor";
-import { Candidato } from "../core/Candidato";
+import { Candidato } from "../core/Candidato.ts";
 
 export class SuscriptorNomina implements Suscriptor {
     private emailNomina: string;

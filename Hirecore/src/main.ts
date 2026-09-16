@@ -1,51 +1,80 @@
-import "./estados/EstadosConcretos";
-import { EstadoBase } from "./estados/EstadoBase";
+import { Usuario } from "./comandos/Usuario";
 import { Candidato } from "./core/Candidato";
-import { Publicador } from "./suscriptores/Publicador";
-import {
-  SuscriptorReclutador,
-  SuscriptorGerente,
-  SuscriptorNomina,
-  SuscriptorPortal
-} from "./suscriptores/SuscriptoresConcretos";
 import { GestorDeCandidato } from "./core/GestorDeCandidato";
+import { EstadoAplicado } from "./estados/EstadoAplicado";
+import { EstadoBase } from "./estados/EstadoBase";
+import { EstadoEntrevista } from "./estados/EstadoEntrevista";
+import { EstadoPruebaTecnica } from "./estados/EstadoPruebaTecnica";
+import { EstadoOferta } from "./estados/EstadoOferta";
+import { EstadoVerificacionReferencias } from "./estados/EstadoVerificacionReferencias";
+import { EstadoContratado } from "./estados/EstadoContratado";
+import { EstadoRechazado } from "./estados/EstadoRechazado";
+import { Publicador } from "./suscriptores/Publicador";
+import { SuscriptorGerente } from "./suscriptores/SuscriptorGerente";
+import { SuscriptorNomina } from "./suscriptores/SuscriptorNomina";
+import { SuscriptorPortal } from "./suscriptores/SuscriptorPortal";
+import { SuscriptorReclutador } from "./suscriptores/SuscriptorReclutador";
 
-console.log("=== INICIALIZANDO CONFIGURACIÓN DE OBSERVADORES ===");
 const publicador = new Publicador();
 publicador.agregarSuscriptor(new SuscriptorReclutador());
-publicador.agregarSuscriptor(new SuscriptorGerente("gerente.tecnologia@empresa.com"));
+publicador.agregarSuscriptor(new SuscriptorGerente("gerente@empresa.com"));
 publicador.agregarSuscriptor(new SuscriptorNomina("nomina@empresa.com"));
 publicador.agregarSuscriptor(new SuscriptorPortal());
 
-console.log("\n=== CREANDO CANDIDATO Y GESTOR ===");
-const candidato = new Candidato("Carlos Gómez", "carlos@gmail.com", "reclutador@empresa.com", "APLICADO");
+const candidato = new Candidato(
+  "Carlos Gómez",
+  "carlos@gmail.com",
+  "reclutador@empresa.com",
+  "APLICADO"
+);
+
+const estados = [
+  new EstadoAplicado(),
+  new EstadoEntrevista(),
+  new EstadoPruebaTecnica(),
+  new EstadoOferta(),
+  new EstadoVerificacionReferencias(),
+  new EstadoContratado(),
+  new EstadoRechazado()
+];
+
+EstadoBase.registrarEstados(estados);
+
 const estadoInicial = EstadoBase.obtenerEstado("APLICADO");
-const gestor = new GestorDeCandidato(estadoInicial, candidato, publicador);
 
-console.log(`Estado Inicial del Candidato: ${candidato.estado}`);
+if (!estadoInicial) {
+  throw new Error("No se pudo registrar el estado inicial.");
+}
 
-console.log("\n--- 1. AVANZAR: APLICADO -> ENTREVISTA ---");
-gestor.avanzar("ana.reclutadora");
+const gestor = new GestorDeCandidato(
+  estadoInicial,
+  candidato,
+  publicador
+);
+const usuario = new Usuario("Ana");
 
-console.log("\n--- 2. AVANZAR: ENTREVISTA -> PRUEBA_TECNICA ---");
-gestor.avanzar("ana.reclutadora");
+console.log("=== Flujo principal ===");
+console.log("Estado inicial:", candidato.estado);
 
-console.log("\n--- 3. AVANZAR: PRUEBA_TECNICA -> OFERTA ---");
-gestor.avanzar("lider.tecnico");
+gestor.avanzar(usuario);
+console.log("Después de avanzar:", candidato.estado);
 
-console.log("\n--- 4. RECHAZAR ACCIDENTALMENTE ---");
-gestor.rechazar("ana.reclutadora");
-console.log(`Estado actual tras rechazo: ${candidato.estado}`);
+gestor.avanzar(usuario);
+console.log("Después de avanzar:", candidato.estado);
 
-console.log("\n--- 5. DESHACER RECHAZO ---");
-gestor.deshacerUltimo("ana.reclutadora");
-console.log(`Estado actual tras deshacer: ${candidato.estado}`);
+gestor.avanzar(usuario);
+console.log("Después de avanzar:", candidato.estado);
 
-console.log("\n--- 6. AVANZAR: OFERTA -> VERIFICACION_REFERENCIAS ---");
-gestor.avanzar("ana.reclutadora");
+console.log("\n=== Rechazo y undo ===");
 
-console.log("\n--- 7. AVANZAR: VERIFICACION_REFERENCIAS -> CONTRATADO ---");
-gestor.avanzar("gerente.tecnologia");
+gestor.rechazar(usuario);
+console.log("Después de rechazar:", candidato.estado);
 
-console.log("\n=== CONSULTA DE HISTORIAL DE AUDITORÍA ===");
+gestor.deshacer(usuario);
+console.log("Después de deshacer:", candidato.estado);
+
+gestor.deshacer(usuario);
+console.log("Después del segundo undo:", candidato.estado);
+
+console.log("\n=== Historial ===");
 console.table(gestor.consultarHistorial());
